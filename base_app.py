@@ -22,48 +22,45 @@
 
 """
 # Streamlit dependencies
-import matplotlib.style as style
-from nbformat import write
-from nltk.tokenize import word_tokenize, TreebankWordTokenizer
-import plotly
-from sklearn.feature_extraction.text import TfidfVectorizer
+import scipy.sparse
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.model_selection import train_test_split
-from wordcloud import WordCloud
-import warnings
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-from nltk import pos_tag
-from PIL import Image
-from nlppreprocess import NLP
-from os import path
-from nltk.stem import SnowballStemmer
-from nltk.stem import WordNetLemmatizer
-from nltk.stem import PorterStemmer
-from nltk.tokenize import RegexpTokenizer
-from nltk.corpus import stopwords
-import string
-import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from nltk.tokenize import word_tokenize, TreebankWordTokenizer
 import nltk
+import re
+import string
+from nltk import pos_tag
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+import warnings
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.base import BaseEstimator, TransformerMixin
+from nlppreprocess import NLP
 import streamlit as st
-import joblib
-import os
+import joblib, os
 
 # Data dependencies
 import pandas as pd
+from PIL import Image
+from os import path
 
-# Libraries for data loading, data manipulation and data visulisation
 import numpy as np
 import pandas as pd
+
+# Visualization  dependencies
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly
 import plotly.express as px
 import matplotlib as mpl
-
-
-import seaborn as sns
+import matplotlib.style as style
+from wordcloud import WordCloud
 # Overrall graph sizes
 plt.rcParams['figure.dpi'] = 150
-# NLP Libraries
+
+
+# Preprocessing and cleaning dependencies
 nlp = NLP()
 # Setting global constants to ensure notebook results are reproducible
 PARAMETER_CONSTANT = 'Magic String'
@@ -75,11 +72,11 @@ sns.set(font_scale=1.5)
 style.use('seaborn-pastel')
 style.use('seaborn-poster')
 
-
+# Model Extraction  dependencies
 
 
 # Vectorizer
-news_vectorizer = open("resources/tfidfvect.pkl", "rb")
+news_vectorizer = open("resources/tfidfvectu.pkl", "rb")
 # loading your vectorizer from the pkl file
 tweet_cv = joblib.load(news_vectorizer)
 
@@ -87,8 +84,14 @@ tweet_cv = joblib.load(news_vectorizer)
 raw = pd.read_csv("resources/train.csv")
 
 # The main function where we will build the actual app
+
+# Creating readable analysis
 raw['Analysis'] = [['Negative', 'Neutral', 'Positive', 'News'][x+1]
                    for x in raw['sentiment']]
+
+# Creating a copy of the original data for visuals without affecting the original data
+new_df = raw.copy()
+
 # Function to extract hashtags from tweets
 
 
@@ -116,56 +119,109 @@ negative = hashtag_extract(raw['message'][raw['Analysis'] == 'Negative'])
 neutral = hashtag_extract(raw['message'][raw['Analysis'] == 'Neutral'])
 news = hashtag_extract(raw['message'][raw['Analysis'] == 'News'])
 
-#Creating a cleaning data function, class and pipelines 
+# Creating a cleaning data function, class and pipelines
 
-#cleaning data functions 
-def cleanup_text(input_text: str) -> str:
+# cleaning data functions
+
+
+def cleanup_text(input_text):
     
-    """
-    Apply some basic cleanup to the input text. 
-    input takes the text as a string
-    :param input_text: The input text.
-    :return: The cleaned input text
-    """
+    #Apply some basic cleanup to the input text.
+    #input takes the text as a string
+    #param input_text: The input text.
+    #return: The cleaned input text
+
     text = input_text.lower()
-    #changing the input_text to lower case
-    '''Replacing words matching regular expressions
-        : We are looking at the most regualr expressions'''
-    
+    # changing the input_text to lower case
+    #Replacing words matching regular expressions
+    #We are looking at the most regualr expressions"""
+
     text = re.sub(r"won't", 'will not', text)
     text = re.sub(r"can't", 'cannot', text)
     text = re.sub(r"i'm", 'i am', text)
-    text = re.sub(r'ain\'t', 'is not', text)
-    text = re.sub(r"doesn't", 'is does not', text)
-    text = re.sub(r'(\w+)\'ll', '\g<1> will', text)
-    text = re.sub(r'(\w+)n\'t', '\g<1> not', text)
-    text = re.sub(r'(\w+)\'ve', '\g<1> have', text)
-    text = re.sub(r'(\w+)\'s', '\g<1> is', text)
-    text = re.sub(r'(\w+)\'re', '\g<1> are', text)
-    text = re.sub(r'(\w+)\'d', '\g<1> would', text)
-    #Removing the username
-    text= re.sub('@[^\s]+','',text)
-    #Removing the special characters
-    text = re.sub('r<.*?>',' ', text)
+    text = re.sub(r"ain't", 'is not', text)
+    text = re.sub(r"doesn't", 'it does not', text)
+    # Removing the username
+    text = re.sub('@[^\s]+', '', text)
+    # Removing the special characters
+    text = re.sub('r<.*?>', ' ', text)
     text = re.sub("^\s+|\s+$", "", text, flags=re.UNICODE)
-    #Removing all the punctuations in the text that we may not need
+    # Removing all the punctuations in the text that we may not need
     punctuation = re.compile("[.;:!\'’‘“”?,\"()\[\]]")
-    text = punctuation.sub("", text.lower()) 
+    text = punctuation.sub("", text.lower())
 
-    '''It is important to not remove all stop_words as they might mess up our data during analysis, we will introduce nlp to keep some of the stop words'''
-    nlp_stopwords = NLP(replace_words=True, remove_stopwords=True, remove_numbers=True, remove_punctuations=False) 
+    #It is important to not remove all stop_words as they might mess up our data during analysis, we will introduce nlp to keep some of the stop words
+    nlp_stopwords = NLP(replace_words=True, remove_stopwords=True,
+                        remove_numbers=True, remove_punctuations=False)
     text = nlp_stopwords.process(text)
-    #Tokenizing the text
+    # Tokenizing the text
     text = text.split()
     # Limmatizing the text with the help of pos tag
-    #Pos tag is a speech tag
+    # Pos tag is a speech tag
     pos = pos_tag(text)
     # Only considering words with speech tag
     lemmatizer = WordNetLemmatizer()
-    text = ' '.join([lemmatizer.lemmatize(word, po[0].lower()) if (po[0].lower() in ['n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])
-    
-    #returning the cleaned text
+    text = ' '.join([lemmatizer.lemmatize(word, po[0].lower()) if (po[0].lower() in [
+                    'n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])
+
+    # returning the cleaned text
     return text
+
+# function to clean text data
+
+
+def remove_pattern(input_txt, pattern):
+    #The  function will take the first word as an input
+    #it will then create a pattern and once a match is found
+    #it will replace the input with a space"""
+    # find the pattern of the input, e.g, @user or http://
+    r = re.findall(pattern, input_txt)
+
+    for i in r:
+        # replaces the input with a white sapce
+        input_txt = re.sub(i, '', input_txt)
+
+    return input_txt
+
+ # Class for cleaning the data using the above functions
+
+
+class clean_data(BaseEstimator, TransformerMixin):
+    #This initial class helps us clean the the text
+    #Uses the above functions to perform the clean of data
+    #Helps us to clean data using multi functions
+
+    def __init__(self):
+        
+        pass
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, x, y=None):
+        # Removing the url links applying the above input
+        x['message'] = np.vectorize(remove_pattern)(
+            x['message'], 'https://t.co/\w+')
+        # Removing the retweets(RT)
+        x['message'] = np.vectorize(remove_pattern)(x['message'], "RT")
+        # Removing the whitespaces and the special characters
+        x['message'] = x['message'].str.replace('[^a-zA-Z#]', ' ')
+        # Removes the https without url links
+        x['message'] = np.vectorize(remove_pattern)(x['message'], "https")
+        # Applies the above cleanup_text function to clean the remaining uncleaned data
+        x['message'] = x['message'].apply(cleanup_text)
+        # Takes words taht have three characters and above
+        x['message'] = x['message'].apply(
+            lambda x: ' '.join([w for w in x.split() if len(w) > 2]))
+        # Removes the whitesapces after splitting and joining them
+        x['message'] = x['message'].str.replace(r'[^\w\s]+', '')
+
+        # Returns the cleaned text
+        return x
+
+
+# Cleaning our copied data
+
 
 
 def main():
@@ -283,7 +339,26 @@ def main():
         st.pyplot(fig)
 
         st.markdown('A hashtag—written with a "#" symbol—is used to index keywords or topics on Twitter. This function was created on Twitter,\
-            and allows people to easily follow topics they are interested in. Hashtags help you to identify the most trending topics at that moment, thus helping us in analysing our data. It is believed Our most #hashtag trends will be based mostly on  Climate change. The above graphs helps us understand which trends had more engagements and if those trends where eithe positive, negative, news or just nuetral. This gives us a better insight of our data. ')
+            and allows people to easily follow topics they are interested in. Hashtags help you to identify the most trending topics at that moment, thus helping us in analysing our data. It is believed Our most #hashtag trends will be based mostly on  Climate change. The above graphs helps us understand which trends had more engagements and if those trends where either positive, negative, news or just nuetral. This gives us a better insight of our data. ')
+        st.markdown('*The above analysis were based on uncleaned data, we  are to clean the data and this time around we are to use word cloud visuals just to have a look at the most common words used in each sentiment. This might give more knowledge as to why our data is not balanced. Balancing the data is something is something we going to do later in this stage.*')
+        st.subheader(
+            'The following visuals provide the most frequent words used in each tweet sentiment')
+        st.markdown('The visuals will be based only on the cleaned data. We can first see the frequent words for the overral sentiment before visualising for each sentiment')
+
+        style.use('seaborn-poster')
+        cl = clean_data()
+        ct = cl.fit(new_df)
+        bd = ct.transform(new_df)
+        all_words = " ".join([sentence for sentence in bd['message']])
+        wordcloud = WordCloud(
+            width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
+
+        # plot the graph
+        fig = plt.figure(figsize=(15, 8))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.title('Most used tags of clean tweets')
+        plt.axis('off')
+        st.pyplot(fig)
 
     # Building out the predication page
     if selection == "Prediction":
@@ -297,13 +372,21 @@ def main():
             # Load your .pkl file with the model of your choice + make predictions
             # Try loading in multiple models to give the user a choice
             predictor = joblib.load(
-                open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
+                open(os.path.join("resources/linearsvc.pkl"), "rb"))
             prediction = predictor.predict(vect_text)
+            if prediction == 0:
+                result = 'Neutral Text'
+            elif prediction ==1:
+                result = 'Positive Text'
+            elif prediction == 2:
+                result = 'News'
+            else:
+                result = 'Negative Text'
 
             # When model has successfully run, will print prediction
             # You can use a dictionary or similar structure to make this output
             # more human interpretable.
-            st.success("Text Categorized as: {}".format(prediction))
+            st.success("Text Categorized as:  {}".format(result))
 
 
 # Required to let Streamlit instantiate our web app.

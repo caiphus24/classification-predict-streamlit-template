@@ -22,21 +22,6 @@
 
 """
 # Streamlit dependencies
-import scipy.sparse
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline
-from nltk.tokenize import word_tokenize, TreebankWordTokenizer
-import nltk
-import re
-import string
-from nltk import pos_tag
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-import warnings
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from sklearn.base import BaseEstimator, TransformerMixin
-from nlppreprocess import NLP
 import streamlit as st
 import joblib, os
 
@@ -61,7 +46,19 @@ plt.rcParams['figure.dpi'] = 150
 
 
 # Preprocessing and cleaning dependencies
+from nltk.tokenize import word_tokenize, TreebankWordTokenizer
+import nltk
+import re
+import string
+from nltk import pos_tag
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+import warnings
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.base import BaseEstimator, TransformerMixin
+from nlppreprocess import NLP
 nlp = NLP()
+
 # Setting global constants to ensure notebook results are reproducible
 PARAMETER_CONSTANT = 'Magic String'
 # ignore warnings
@@ -73,7 +70,15 @@ style.use('seaborn-pastel')
 style.use('seaborn-poster')
 
 # Model Extraction  dependencies
+import scipy.sparse
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
 
+
+
+# Igonring warnings
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
 # Vectorizer
 news_vectorizer = open("resources/tfidfvectu.pkl", "rb")
@@ -359,6 +364,33 @@ def main():
         plt.title('Most used tags of clean tweets')
         plt.axis('off')
         st.pyplot(fig)
+        
+        #Word graph for each sentiment
+        df=bd.groupby('Analysis')
+        wc1=" ".join(tweet for tweet in df.get_group('Positive').message)
+        wc2=" ".join(tweet for tweet in df.get_group('News').message)
+        wc3=" ".join(tweet for tweet in df.get_group('Negative').message)
+        wc0=" ".join(tweet for tweet in df.get_group('Neutral').message)
+        wc = WordCloud(width=400, height=400, 
+               background_color='black', colormap='Dark2',
+               max_font_size=150, random_state=42)
+
+        plt.rcParams['figure.figsize'] = [35, 25]
+        tweet_list = [wc1, wc2,
+                    wc3, wc0]
+        title = ['Most used words on Positive tweet', 'Most used words on News tweet', 
+                    'Most used words on Negative tweet', 'Most used words on Neutral tweet']
+
+        # Create subplots 
+        for i in range(0, len(tweet_list)):
+            wc.generate(tweet_list[1])
+    
+        plt.subplot(2, 2, i + 1)
+        plt.imshow(wc, interpolation='bilinear')
+        plt.axis("off")
+        plt.title(title[i])
+            
+        st.pyplot()
 
     # Building out the predication page
     if selection == "Prediction":

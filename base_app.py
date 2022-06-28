@@ -213,15 +213,54 @@ def main():
 
     # Creating sidebar with selection box -
     # you can create multiple pages this way
-    options = ["Prediction", "Information", "Analysis"]
+    options = ["Information", "Analysis", "Prediction"]
     selection = st.sidebar.selectbox("Choose Option", options)
 
     # Building out the "Information" page
     if selection == "Information":
         st.info("General Information")
         # You can read a markdown file from supporting resources folder
-        st.markdown("Some information here")
-
+        
+        #Mini Introduction
+        st.markdown("Twitter data (commonly know as tweets) is a incredibly powerful source of information on an extensive list of topics. This data will be analyzed to find trends related to climate change, measure popular sentiment, obtain feedback on past desicions and also help make future desicions. \
+            With this context, We built  a Machine Learning model that is able to classify whether or not a person believes in climate change, based on their novel tweet data.")
+        
+        st.subheader('Brief Discussion of models used our app')
+        
+        #Random forest classifier model
+        st.info('RANDOM FOREST CLASSIFIER(RF)')
+        st.markdown('Random Forest is a classifier that contains a number of decision trees on various subsets of the given dataset and takes the average to improve the predictive accuracy of that dataset. \
+            Instead of relying on one decision tree, the random forest takes the prediction from each tree and based on the majority votes of predictions, and it predicts the final output.')
+        st.markdown('During thr model evaluation, the random forest classifier produced a lower accurary, we cannot really rely on this model when we need to classify tweet data.')
+        
+        #Decision tree classifier
+        st.info('DECISION TREE CLASSIFIER(DECISION_TREE)')
+        st.markdown('It is a tree-structured classifier, where internal nodes represent the features of a dataset, branches represent the decision rules and each leaf node represents the outcome.')
+        st.markdown('Decision trees easily overdrift, during evaluation the decision had a poor accuray affected by the over-drifting of the model.')
+        
+        #K-nearest Neighberhood model
+        st.info('K-NEAREST NEIGHBERHOOD(KNN)')
+        st.markdown('A k-nearest-neighbor is a data classification algorithm that attempts to determine what group a data point is in by looking at the data points around it. \
+                    An algorithm, looking at one point on a grid, trying to determine if a point is in group A or B, looks at the states of the points that are near it.\
+                    The range is arbitrarily determined, but the point is to take a sample of the data. If the majority of the points are in group A, then it is likely that the data point in question will be A rather than B, and vice versa.')
+        st.markdown('During model evaluating, the KNN model did produce some good results, which i believe it will be useful for text data that will be classified using this application.')
+        
+        #Multinomial model
+        st.info('MULTINOMAIL NAIVE BAYES(NB)')
+        st.markdown('The Multinomial Naive Bayes algorithm is a Bayesian learning approach popular in Natural Language Processing (NLP). The program guesses the tag of a text, such as an email or a newspaper story, using the Bayes theorem. It calculates each tag likelihood for a given sample and outputs the tag with the greatest chance. \
+            The Naive Bayes classifier is made up of a number of algorithms that all have one thing in common: each feature being classed is unrelated to any other feature. A feature existence or absence has no bearing on the inclusion or exclusion of another feature')
+        st.markdown('During model evaluating, the Multinomial model did produce some good results, which i believe it will be useful for text data that will be classified using this application.')
+        
+        #Logistic Regression
+        st.info('LOGISTIC REGRESSION(LR)')
+        st.markdown('Logistic Regression is a ‘Statistical Learning’ technique categorized in ‘Supervised’ Machine Learning (ML) methods dedicated to ‘Classification’ tasks.')
+        st.markdown('The logistic regression produced best accuray results with the help of hyperparameters. It is the best model to use for tweet classificaton')
+        
+        #Linear Support Vector Machine
+        st.info('LINEAR SUPPORT VECTOR MACHINE')
+        st.markdown('SVM or Support Vector Machine is a linear model for classification and regression problems. It can solve linear and non-linear problems and work well for many practical problems. The idea of SVM is simple: The algorithm creates a line or a hyperplane which separates the data into classes.')
+        st.markdown('The Linear Support Vector Machine produced outstanding average accuray results with the help of hyperparameters. It is the top model to use for tweet classificaton')
+        
         st.subheader("Raw Twitter data and label")
         if st.checkbox('Show raw data'):  # data is hidden if box is unchecked
             # will write the df to the page

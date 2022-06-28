@@ -42,7 +42,7 @@ import matplotlib as mpl
 import matplotlib.style as style
 from wordcloud import WordCloud
 # Overrall graph sizes
-plt.rcParams['figure.dpi'] = 150
+plt.rcParams['figure.dpi'] = 180
 
 
 # Preprocessing and cleaning dependencies
@@ -129,100 +129,74 @@ news = hashtag_extract(raw['message'][raw['Analysis'] == 'News'])
 # cleaning data functions
 
 
-def cleanup_text(input_text):
+def cleanup_text(text):
     
-    #Apply some basic cleanup to the input text.
-    #input takes the text as a string
-    #param input_text: The input text.
-    #return: The cleaned input text
-
-    text = input_text.lower()
-    # changing the input_text to lower case
-    #Replacing words matching regular expressions
-    #We are looking at the most regualr expressions"""
-
-    text = re.sub(r"won't", 'will not', text)
-    text = re.sub(r"can't", 'cannot', text)
-    text = re.sub(r"i'm", 'i am', text)
-    text = re.sub(r"ain't", 'is not', text)
-    text = re.sub(r"doesn't", 'it does not', text)
-    # Removing the username
-    text = re.sub('@[^\s]+', '', text)
-    # Removing the special characters
-    text = re.sub('r<.*?>', ' ', text)
-    text = re.sub("^\s+|\s+$", "", text, flags=re.UNICODE)
-    # Removing all the punctuations in the text that we may not need
-    punctuation = re.compile("[.;:!\'’‘“”?,\"()\[\]]")
-    text = punctuation.sub("", text.lower())
-
-    #It is important to not remove all stop_words as they might mess up our data during analysis, we will introduce nlp to keep some of the stop words
-    nlp_stopwords = NLP(replace_words=True, remove_stopwords=True,
-                        remove_numbers=True, remove_punctuations=False)
-    text = nlp_stopwords.process(text)
-    # Tokenizing the text
-    text = text.split()
-    # Limmatizing the text with the help of pos tag
-    # Pos tag is a speech tag
-    pos = pos_tag(text)
-    # Only considering words with speech tag
-    lemmatizer = WordNetLemmatizer()
-    text = ' '.join([lemmatizer.lemmatize(word, po[0].lower()) if (po[0].lower() in [
-                    'n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])
-
-    # returning the cleaned text
-    return text
-
-# function to clean text data
 
 
-def remove_pattern(input_txt, pattern):
-    #The  function will take the first word as an input
-    #it will then create a pattern and once a match is found
-    #it will replace the input with a space"""
-    # find the pattern of the input, e.g, @user or http://
-    r = re.findall(pattern, input_txt)
+  #Apply some basic cleanup to the input text. 
+  #input takes the text as a string
+  #param input_text: The input text.
+  #return: The cleaned input text
 
-    for i in r:
-        # replaces the input with a white sapce
-        input_txt = re.sub(i, '', input_txt)
+  #This function uses regular expressions to remove url's, mentions, hashtags, 
+  #punctuation, numbers and any extra white space from tweets after converting 
+  #everything to lowercase letters.
 
-    return input_txt
+  #Input:
+  #tweet: original tweet
+          #datatype: 'str'
+  text = text.lower()
+  # Remove mentions   
+  text = re.sub('@[\w]*','',text)  
+  
+  # Remove url's
+  text = re.sub(r'https?:\/\/.*\/\w*', '', text)
+  
+  # Remove hashtags
+  text = re.sub(r'#\w*', '', text)   
+  
+  
+  #Removes the retweets(rt)
+  text = re.sub(r'rt', '', text) 
 
- # Class for cleaning the data using the above functions
+  # Remove numbers
+  text = re.sub(r'\d+', '', text) 
+  
 
+  
+  #Removes the https
+  text = re.sub(r'https', '', text) 
+  
+  # Remove punctuation
+  text = re.sub(r"[,.;':@#?!\&/$]+\ *", ' ', text)
+  
+  # Remove that funny diamond
+  text = re.sub(r"U+FFFD ", ' ', text)
+  
+  # Remove extra whitespace
+  text = re.sub(r'\s\s+', ' ', text)
+  
+  # Remove space in front of text 
+  text = text.lstrip(' ')  
+  # Removes stopwords
+  nlp_for_stopwords = NLP(replace_words=True, remove_stopwords=True,  remove_numbers=True, remove_punctuations=False) 
+  text = nlp_for_stopwords.process(text) # This will remove stops words that are not necessary. The idea is to keep words like [is, not, was]
 
-class clean_data(BaseEstimator, TransformerMixin):
-    #This initial class helps us clean the the text
-    #Uses the above functions to perform the clean of data
-    #Helps us to clean data using multi functions
+  # tokenisation
+  # We used the split method instead of the word_tokenise library 
+ 
+  text = text.split() 
 
-    def __init__(self):
-        
-        pass
+  # POS 
+  # Part of Speech tagging is essential to ensure Lemmatization perfoms well.
+  pos = pos_tag(text)
 
-    def fit(self, x, y=None):
-        return self
-
-    def transform(self, x, y=None):
-        # Removing the url links applying the above input
-        x['message'] = np.vectorize(remove_pattern)(
-            x['message'], 'https://t.co/\w+')
-        # Removing the retweets(RT)
-        x['message'] = np.vectorize(remove_pattern)(x['message'], "RT")
-        # Removing the whitespaces and the special characters
-        x['message'] = x['message'].str.replace('[^a-zA-Z#]', ' ')
-        # Removes the https without url links
-        x['message'] = np.vectorize(remove_pattern)(x['message'], "https")
-        # Applies the above cleanup_text function to clean the remaining uncleaned data
-        x['message'] = x['message'].apply(cleanup_text)
-        # Takes words taht have three characters and above
-        x['message'] = x['message'].apply(
-            lambda x: ' '.join([w for w in x.split() if len(w) > 2]))
-        # Removes the whitesapces after splitting and joining them
-        x['message'] = x['message'].str.replace(r'[^\w\s]+', '')
-
-        # Returns the cleaned text
-        return x
+  # Lemmatization
+  lemmatizer = WordNetLemmatizer()
+  text = ' '.join([lemmatizer.lemmatize(word, po[0].lower()) 
+                    if (po[0].lower() in ['n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])                    
+  
+  return text
 
 
 # Cleaning our copied data
@@ -350,11 +324,13 @@ def main():
             'The following visuals provide the most frequent words used in each tweet sentiment')
         st.markdown('The visuals will be based only on the cleaned data. We can first see the frequent words for the overral sentiment before visualising for each sentiment')
 
-        style.use('seaborn-poster')
-        cl = clean_data()
-        ct = cl.fit(new_df)
-        bd = ct.transform(new_df)
-        all_words = " ".join([sentence for sentence in bd['message']])
+  
+
+        #cleaning the data
+        new_df['message'] = new_df['message'].apply(cleanup_text)
+        
+        #plotting a word cloud for the new data 
+        all_words = " ".join([sentence for sentence in new_df['message']])
         wordcloud = WordCloud(
             width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
 
@@ -366,61 +342,193 @@ def main():
         st.pyplot(fig)
         
         #Word graph for each sentiment
-        df=bd.groupby('Analysis')
+        df=new_df.groupby('Analysis')
         wc1=" ".join(tweet for tweet in df.get_group('Positive').message)
         wc2=" ".join(tweet for tweet in df.get_group('News').message)
         wc3=" ".join(tweet for tweet in df.get_group('Negative').message)
         wc0=" ".join(tweet for tweet in df.get_group('Neutral').message)
-        wc = WordCloud(width=400, height=400, 
-               background_color='black', colormap='Dark2',
-               max_font_size=150, random_state=42)
+        wc = WordCloud(width=800, height=700, 
+                    colormap='Dark2',background_color='black',
+                    max_font_size=110, random_state=42)
+        pos = WordCloud(width=600, height=400, 
+                    colormap='Greens',background_color='black',
+                    max_font_size=150, random_state=42).generate(wc1)
+        nes = WordCloud(width=600, height=400, 
+                    colormap='Blues',background_color='black',
+                    max_font_size=150, random_state=42).generate(wc2)
+        neu = WordCloud(width=600, height=400, 
+                    colormap='Dark2',background_color='black',
+                    max_font_size=150, random_state=42).generate(wc3)
+        neg = WordCloud(width=600, height=400, 
+                    colormap='Reds',background_color='black',
+                    max_font_size=150, random_state=42, stopwords='english').generate(wc0)
+        f, axarr = plt.subplots(2,2, figsize=(35,25))
+        plt.subplots_adjust(wspace=0.02,hspace=0.1)
+        axarr[0,0].imshow(pos, interpolation="bilinear")
+        axarr[0,1].imshow(nes, interpolation="bilinear")
+        axarr[1,0].imshow(neu, interpolation="bilinear")
+        axarr[1,1].imshow(neg, interpolation="bilinear")
 
-        plt.rcParams['figure.figsize'] = [35, 25]
-        tweet_list = [wc1, wc2,
-                    wc3, wc0]
-        title = ['Most used words on Positive tweet', 'Most used words on News tweet', 
-                    'Most used words on Negative tweet', 'Most used words on Neutral tweet']
+        # Remove the ticks on the x and y axes
+        for ax in f.axes:
+            plt.sca(ax)
+            plt.axis('off')
 
-        # Create subplots 
-        for i in range(0, len(tweet_list)):
-            wc.generate(tweet_list[1])
-    
-        plt.subplot(2, 2, i + 1)
-        plt.imshow(wc, interpolation='bilinear')
-        plt.axis("off")
-        plt.title(title[i])
-            
+        axarr[0,0].set_title('Positive climate change\n', fontsize=35)
+        axarr[0,1].set_title('Negative climate change\n', fontsize=35)
+        axarr[1,0].set_title('Neutral\n', fontsize=35)
+        axarr[1,1].set_title('News\n', fontsize=35)
+
         st.pyplot()
-
     # Building out the predication page
     if selection == "Prediction":
         st.info("Prediction with ML Models")
         # Creating a text box for user input
-        tweet_text = st.text_area("Enter Text", "Type Here")
+        data_source = ['Select type of Data', 'Tweet Text', 'CSV file'] ## differentiating between a single text and a dataset inpit
 
-        if st.button("Classify"):
-            # Transforming user input with vectorizer
-            vect_text = tweet_cv.transform([tweet_text]).toarray()
-            # Load your .pkl file with the model of your choice + make predictions
-            # Try loading in multiple models to give the user a choice
-            predictor = joblib.load(
-                open(os.path.join("resources/linearsvc.pkl"), "rb"))
-            prediction = predictor.predict(vect_text)
-            if prediction == 0:
-                result = 'Neutral Text'
-            elif prediction ==1:
-                result = 'Positive Text'
-            elif prediction == 2:
-                result = 'News'
-            else:
-                result = 'Negative Text'
+        source_selection = st.selectbox('Type of Data', data_source)
+        
+        #Fuction to return a key value
+        def get_keys(val,my_dict):
+            for key,value in my_dict.items():
+                if val == value:
+                    return key
+                
+        if source_selection == 'Tweet Text':
+            st.info('**Classification for single tweet text, this is limited to 140 Characters as per tweet.**')
+            tweet_text = st.text_area("Enter Text Below:")
+            model_name = ["LinearSVC","NB","RFOREST","DECISION_TREE", "LR","KNN"]
+            model_choice = st.selectbox("Select a Classifier  Model",model_name)
+            
+            prediction_labels = {'Negative Tweet':-1,'Neutral Tweet':0,'Positive Tweet':1,'News Tweet':2}
+            #Classifying using different models
+            if st.button("Classify"):
+                
+                #Cleaning the input text
+                tweet_text = cleanup_text(tweet_text)
+                # Transforming user input with vectorizer
+                vect_text = tweet_cv.transform([tweet_text]).toarray()
+                # Load your .pkl file with the model of your choice + make predictions
+                # Try loading in multiple models to give the user a choice
+                
+                #Linear SVC Model
+                if model_choice == "LinearSVC":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/linearsvc.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                # MutilNomial Naive Model
+                if model_choice == "NB":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/MultinomialNB.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                #Random Forest Model
+                if model_choice == "RFOREST":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                
+                #Decision Tree Classifer Model
+                if model_choice == "DECISION_TREE":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/DecisionTreeClassifier.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                
+                #Logistic Regression Model    
+                if model_choice == "LR":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                #K-Neighborhood Naive Model
+                if model_choice == "KNN":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                
+                
 
-            # When model has successfully run, will print prediction
-            # You can use a dictionary or similar structure to make this output
-            # more human interpretable.
-            st.success("Text Categorized as:  {}".format(result))
-
-
+                final_result = get_keys(prediction,prediction_labels)
+                # When model has successfully run, will print prediction
+                # You can use a dictionary or similar structure to make this output
+                # more human interpretable.
+                st.success("Text Categorized as:  {}".format(final_result))
+    
+        if source_selection == 'CSV file':
+            #CSV File Prediction
+            st.subheader('Tweet Classification for csv file')
+            
+            model_name = ["LinearSVC","NB","RFOREST","DECISION_TREE", "LR","KNN"]
+            model_choice = st.selectbox("Select a Classifier  Model",model_name)
+            
+            prediction_labels = {'Negative':-1,'Neutral':0,'Positive':1,'News':2}
+            data = st.file_uploader("Select a CSV file", type="csv")
+            if data is not None:
+                data = pd.read_csv(data)
+                
+            uploaded_dataset = st.checkbox('Click to view uploaded file')
+            if uploaded_dataset:
+                st.dataframe(data.head(25))
+            st.markdown('Please type the name column you wish to classify as the way it is named in the file uploaded.')    
+            new_column = st.text_area('Enter the column name:')
+            
+            senti = st.text_input('type down your y predict')
+            
+            
+            if st.button("Classify"):
+                #Cleaning the input data cloumn 
+                
+                dt = data[new_column].apply(cleanup_text)
+                
+                # Transforming user cleaned data with vectorizer
+                vect_text = tweet_cv.transform([dt]).toarray()
+                # Load your .pkl file with the model of your choice + make predictions
+                # Try loading in multiple models to give the user a choice
+                
+                #Linear SVC Model
+                if model_choice == "LinearSVC":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/linearsvc.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                # MutilNomial Naive Model
+                if model_choice == "NB":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/MultinomialNB.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                #Random Forest Model
+                if model_choice == "RFOREST":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                
+                #Decision Tree Classifer Model
+                if model_choice == "DECISION_TREE":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/DecisionTreeClassifier.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                
+                #Logistic Regression Model    
+                if model_choice == "LR":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                    
+                #K-Neighborhood Naive Model
+                if model_choice == "KNN":
+                    predictor = joblib.load(
+                        open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
+                    prediction = predictor.predict(vect_text)
+                data['sentiment'] = prediction   
+                final_result = get_keys(prediction,prediction_labels)
+                # When model has successfully run, will print prediction
+                # You can use a dictionary or similar structure to make this output
+                # more human interpretable.
+                st.success("Text Categorized as:  {}".format(final_result))
+            
+            
 # Required to let Streamlit instantiate our web app.
 if __name__ == '__main__':
     main()

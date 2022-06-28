@@ -22,8 +22,24 @@
 
 """
 # Streamlit dependencies
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+import scipy.sparse
+from nlppreprocess import NLP
+from sklearn.base import BaseEstimator, TransformerMixin
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+import warnings
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+from nltk import pos_tag
+import string
+import re
+import nltk
+from nltk.tokenize import word_tokenize, TreebankWordTokenizer
 import streamlit as st
-import joblib, os
+import joblib
+import os
 
 # Data dependencies
 import pandas as pd
@@ -46,17 +62,6 @@ plt.rcParams['figure.dpi'] = 180
 
 
 # Preprocessing and cleaning dependencies
-from nltk.tokenize import word_tokenize, TreebankWordTokenizer
-import nltk
-import re
-import string
-from nltk import pos_tag
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-import warnings
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-from sklearn.base import BaseEstimator, TransformerMixin
-from nlppreprocess import NLP
 nlp = NLP()
 
 # Setting global constants to ensure notebook results are reproducible
@@ -70,11 +75,6 @@ style.use('seaborn-pastel')
 style.use('seaborn-poster')
 
 # Model Extraction  dependencies
-import scipy.sparse
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline
-
 
 
 # Igonring warnings
@@ -130,77 +130,73 @@ news = hashtag_extract(raw['message'][raw['Analysis'] == 'News'])
 
 
 def cleanup_text(text):
-    
 
+    # Apply some basic cleanup to the input text.
+    # input takes the text as a string
+    # param input_text: The input text.
+    # return: The cleaned input text
 
-  #Apply some basic cleanup to the input text. 
-  #input takes the text as a string
-  #param input_text: The input text.
-  #return: The cleaned input text
+    # This function uses regular expressions to remove url's, mentions, hashtags,
+    # punctuation, numbers and any extra white space from tweets after converting
+    # everything to lowercase letters.
 
-  #This function uses regular expressions to remove url's, mentions, hashtags, 
-  #punctuation, numbers and any extra white space from tweets after converting 
-  #everything to lowercase letters.
+    # Input:
+    # tweet: original tweet
+    #datatype: 'str'
+    text = text.lower()
+    # Remove mentions
+    text = re.sub('@[\w]*', '', text)
 
-  #Input:
-  #tweet: original tweet
-          #datatype: 'str'
-  text = text.lower()
-  # Remove mentions   
-  text = re.sub('@[\w]*','',text)  
-  
-  # Remove url's
-  text = re.sub(r'https?:\/\/.*\/\w*', '', text)
-  
-  # Remove hashtags
-  text = re.sub(r'#\w*', '', text)   
-  
-  
-  #Removes the retweets(rt)
-  text = re.sub(r'rt', '', text) 
+    # Remove url's
+    text = re.sub(r'https?:\/\/.*\/\w*', '', text)
 
-  # Remove numbers
-  text = re.sub(r'\d+', '', text) 
-  
+    # Remove hashtags
+    text = re.sub(r'#\w*', '', text)
 
-  
-  #Removes the https
-  text = re.sub(r'https', '', text) 
-  
-  # Remove punctuation
-  text = re.sub(r"[,.;':@#?!\&/$]+\ *", ' ', text)
-  
-  # Remove that funny diamond
-  text = re.sub(r"U+FFFD ", ' ', text)
-  
-  # Remove extra whitespace
-  text = re.sub(r'\s\s+', ' ', text)
-  
-  # Remove space in front of text 
-  text = text.lstrip(' ')  
-  # Removes stopwords
-  nlp_for_stopwords = NLP(replace_words=True, remove_stopwords=True,  remove_numbers=True, remove_punctuations=False) 
-  text = nlp_for_stopwords.process(text) # This will remove stops words that are not necessary. The idea is to keep words like [is, not, was]
+    # Removes the retweets(rt)
+    text = re.sub(r'rt', '', text)
 
-  # tokenisation
-  # We used the split method instead of the word_tokenise library 
- 
-  text = text.split() 
+    # Remove numbers
+    text = re.sub(r'\d+', '', text)
 
-  # POS 
-  # Part of Speech tagging is essential to ensure Lemmatization perfoms well.
-  pos = pos_tag(text)
+    # Removes the https
+    text = re.sub(r'https', '', text)
 
-  # Lemmatization
-  lemmatizer = WordNetLemmatizer()
-  text = ' '.join([lemmatizer.lemmatize(word, po[0].lower()) 
-                    if (po[0].lower() in ['n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])                    
-  
-  return text
+    # Remove punctuation
+    text = re.sub(r"[,.;':@#?!\&/$]+\ *", ' ', text)
+
+    # Remove that funny diamond
+    text = re.sub(r"U+FFFD ", ' ', text)
+
+    # Remove extra whitespace
+    text = re.sub(r'\s\s+', ' ', text)
+
+    # Remove space in front of text
+    text = text.lstrip(' ')
+    # Removes stopwords
+    nlp_for_stopwords = NLP(replace_words=True, remove_stopwords=True,
+                            remove_numbers=True, remove_punctuations=False)
+    # This will remove stops words that are not necessary. The idea is to keep words like [is, not, was]
+    text = nlp_for_stopwords.process(text)
+
+    # tokenisation
+    # We used the split method instead of the word_tokenise library
+
+    text = text.split()
+
+    # POS
+    # Part of Speech tagging is essential to ensure Lemmatization perfoms well.
+    pos = pos_tag(text)
+
+    # Lemmatization
+    lemmatizer = WordNetLemmatizer()
+    text = ' '.join([lemmatizer.lemmatize(word, po[0].lower())
+                     if (po[0].lower() in ['n', 'r', 'v', 'a'] and word[0] != '@') else word for word, po in pos])
+
+    return text
 
 
 # Cleaning our copied data
-
 
 
 def main():
@@ -220,47 +216,48 @@ def main():
     if selection == "Information":
         st.info("General Information")
         # You can read a markdown file from supporting resources folder
-        
-        #Mini Introduction
+
+        # Mini Introduction
         st.markdown("Twitter data (commonly know as tweets) is a incredibly powerful source of information on an extensive list of topics. This data will be analyzed to find trends related to climate change, measure popular sentiment, obtain feedback on past desicions and also help make future desicions. \
             With this context, We built  a Machine Learning model that is able to classify whether or not a person believes in climate change, based on their novel tweet data.")
-        
+
         st.subheader('Brief Discussion of models used our app')
-        
-        #Random forest classifier model
+
+        # Random forest classifier model
         st.info('RANDOM FOREST CLASSIFIER(RF)')
         st.markdown('Random Forest is a classifier that contains a number of decision trees on various subsets of the given dataset and takes the average to improve the predictive accuracy of that dataset. \
             Instead of relying on one decision tree, the random forest takes the prediction from each tree and based on the majority votes of predictions, and it predicts the final output.')
         st.markdown('During thr model evaluation, the random forest classifier produced a lower accurary, we cannot really rely on this model when we need to classify tweet data.')
-        
-        #Decision tree classifier
+
+        # Decision tree classifier
         st.info('DECISION TREE CLASSIFIER(DECISION_TREE)')
         st.markdown('It is a tree-structured classifier, where internal nodes represent the features of a dataset, branches represent the decision rules and each leaf node represents the outcome.')
-        st.markdown('Decision trees easily overdrift, during evaluation the decision had a poor accuray affected by the over-drifting of the model.')
-        
-        #K-nearest Neighberhood model
+        st.markdown(
+            'Decision trees easily overdrift, during evaluation the decision had a poor accuray affected by the over-drifting of the model.')
+
+        # K-nearest Neighberhood model
         st.info('K-NEAREST NEIGHBERHOOD(KNN)')
         st.markdown('A k-nearest-neighbor is a data classification algorithm that attempts to determine what group a data point is in by looking at the data points around it. \
                     An algorithm, looking at one point on a grid, trying to determine if a point is in group A or B, looks at the states of the points that are near it.\
                     The range is arbitrarily determined, but the point is to take a sample of the data. If the majority of the points are in group A, then it is likely that the data point in question will be A rather than B, and vice versa.')
         st.markdown('During model evaluating, the KNN model did produce some good results, which i believe it will be useful for text data that will be classified using this application.')
-        
-        #Multinomial model
+
+        # Multinomial model
         st.info('MULTINOMAIL NAIVE BAYES(NB)')
         st.markdown('The Multinomial Naive Bayes algorithm is a Bayesian learning approach popular in Natural Language Processing (NLP). The program guesses the tag of a text, such as an email or a newspaper story, using the Bayes theorem. It calculates each tag likelihood for a given sample and outputs the tag with the greatest chance. \
             The Naive Bayes classifier is made up of a number of algorithms that all have one thing in common: each feature being classed is unrelated to any other feature. A feature existence or absence has no bearing on the inclusion or exclusion of another feature')
         st.markdown('During model evaluating, the Multinomial model did produce some good results, which i believe it will be useful for text data that will be classified using this application.')
-        
-        #Logistic Regression
+
+        # Logistic Regression
         st.info('LOGISTIC REGRESSION(LR)')
         st.markdown('Logistic Regression is a ‘Statistical Learning’ technique categorized in ‘Supervised’ Machine Learning (ML) methods dedicated to ‘Classification’ tasks.')
         st.markdown('The logistic regression produced best accuray results with the help of hyperparameters. It is the best model to use for tweet classificaton')
-        
-        #Linear Support Vector Machine
+
+        # Linear Support Vector Machine
         st.info('LINEAR SUPPORT VECTOR MACHINE')
         st.markdown('SVM or Support Vector Machine is a linear model for classification and regression problems. It can solve linear and non-linear problems and work well for many practical problems. The idea of SVM is simple: The algorithm creates a line or a hyperplane which separates the data into classes.')
         st.markdown('The Linear Support Vector Machine produced outstanding average accuray results with the help of hyperparameters. It is the top model to use for tweet classificaton')
-        
+
         st.subheader("Raw Twitter data and label")
         if st.checkbox('Show raw data'):  # data is hidden if box is unchecked
             # will write the df to the page
@@ -363,12 +360,10 @@ def main():
             'The following visuals provide the most frequent words used in each tweet sentiment')
         st.markdown('The visuals will be based only on the cleaned data. We can first see the frequent words for the overral sentiment before visualising for each sentiment')
 
-  
-
-        #cleaning the data
+        # cleaning the data
         new_df['message'] = new_df['message'].apply(cleanup_text)
-        
-        #plotting a word cloud for the new data 
+
+        # plotting a word cloud for the new data
         all_words = " ".join([sentence for sentence in new_df['message']])
         wordcloud = WordCloud(
             width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
@@ -376,200 +371,203 @@ def main():
         # plot the graph
         fig = plt.figure(figsize=(15, 8))
         plt.imshow(wordcloud, interpolation='bilinear')
-        plt.title('Most used tags of clean tweets')
+        plt.title('Frequent words used for the overrall tweets')
         plt.axis('off')
         st.pyplot(fig)
-        
+
         st.markdown('The most words that will appear overral are the words that had the most hashtags, this might be that it was the most topic people engaged in. The word cloud gives you a better understand of the inside text data and helps us understand which frequent words were used in our text data.')
-        
-        #Word graph for each sentiment
-        df=new_df.groupby('Analysis')
-        wc1=" ".join(tweet for tweet in df.get_group('Positive').message)
-        wc2=" ".join(tweet for tweet in df.get_group('News').message)
-        wc3=" ".join(tweet for tweet in df.get_group('Negative').message)
-        wc0=" ".join(tweet for tweet in df.get_group('Neutral').message)
-        wc = WordCloud(width=800, height=700, 
-                    colormap='Dark2',background_color='black',
-                    max_font_size=110, random_state=42)
-        pos = WordCloud(width=600, height=400, 
-                    colormap='Greens',background_color='black',
-                    max_font_size=150, random_state=42).generate(wc1)
-        nes = WordCloud(width=600, height=400, 
-                    colormap='Blues',background_color='black',
-                    max_font_size=150, random_state=42).generate(wc2)
-        neu = WordCloud(width=600, height=400, 
-                    colormap='Dark2',background_color='black',
-                    max_font_size=150, random_state=42).generate(wc3)
-        neg = WordCloud(width=600, height=400, 
-                    colormap='Reds',background_color='black',
-                    max_font_size=150, random_state=42, stopwords='english').generate(wc0)
-        f, axarr = plt.subplots(2,2, figsize=(35,25))
-        plt.subplots_adjust(wspace=0.02,hspace=0.1)
-        axarr[0,0].imshow(pos, interpolation="bilinear")
-        axarr[0,1].imshow(nes, interpolation="bilinear")
-        axarr[1,0].imshow(neu, interpolation="bilinear")
-        axarr[1,1].imshow(neg, interpolation="bilinear")
+
+        # Word graph for each sentiment
+        df = new_df.groupby('Analysis')
+        wc1 = " ".join(tweet for tweet in df.get_group('Positive').message)
+        wc2 = " ".join(tweet for tweet in df.get_group('News').message)
+        wc3 = " ".join(tweet for tweet in df.get_group('Negative').message)
+        wc0 = " ".join(tweet for tweet in df.get_group('Neutral').message)
+
+        pos = WordCloud(width=600, height=400,
+                        colormap='Greens', background_color='black',
+                        max_font_size=180, random_state=42).generate(wc1)
+        nes = WordCloud(width=600, height=400,
+                        colormap='Blues', background_color='black',
+                        max_font_size=180, random_state=42).generate(wc2)
+        neu = WordCloud(width=600, height=400,
+                        colormap='Dark2', background_color='black',
+                        max_font_size=180, random_state=42).generate(wc3)
+        neg = WordCloud(width=600, height=400,
+                        colormap='Reds', background_color='black',
+                        max_font_size=180, random_state=42, stopwords='english').generate(wc0)
+        f, axarr = plt.subplots(2, 2, figsize=(35, 25))
+        plt.subplots_adjust(wspace=0.02, hspace=0.1)
+        axarr[0, 0].imshow(pos, interpolation="bilinear")
+        axarr[0, 1].imshow(nes, interpolation="bilinear")
+        axarr[1, 0].imshow(neu, interpolation="bilinear")
+        axarr[1, 1].imshow(neg, interpolation="bilinear")
 
         # Remove the ticks on the x and y axes
         for ax in f.axes:
             plt.sca(ax)
             plt.axis('off')
 
-        axarr[0,0].set_title('Positive climate change\n', fontsize=35)
-        axarr[0,1].set_title('Negative climate change\n', fontsize=35)
-        axarr[1,0].set_title('Neutral\n', fontsize=35)
-        axarr[1,1].set_title('News\n', fontsize=35)
+        axarr[0, 0].set_title('Positive climate change\n', fontsize=35)
+        axarr[0, 1].set_title('News\n', fontsize=35)
+        axarr[1, 0].set_title('Neutral\n', fontsize=35)
+        axarr[1, 1].set_title('Negative Climate Change\n', fontsize=35)
 
         st.pyplot()
     # Building out the predication page
     if selection == "Prediction":
         st.info("Prediction with ML Models")
         # Creating a text box for user input
-        data_source = ['Select type of Data', 'Tweet Text', 'CSV file'] ## differentiating between a single text and a dataset inpit
+        # differentiating between a single text and a dataset inpit
+        data_source = ['Select type of Data', 'Tweet Text', 'CSV file']
 
         source_selection = st.selectbox('Type of Data', data_source)
-        
-        #Fuction to return a key value
-        def get_keys(val,my_dict):
-            for key,value in my_dict.items():
+
+        # Fuction to return a key value
+        def get_keys(val, my_dict):
+            for key, value in my_dict.items():
                 if val == value:
                     return key
-                
+
         if source_selection == 'Tweet Text':
-            st.info('**Classification for single tweet text, this is limited to 140 Characters as per tweet.**')
+            st.info(
+                '**Classification for single tweet text, this is limited to 140 Characters as per tweet.**')
             tweet_text = st.text_area("Enter Text Below:")
-            model_name = ["LinearSVC","NB","RFOREST","DECISION_TREE", "LR","KNN"]
-            model_choice = st.selectbox("Select a Classifier  Model",model_name)
-            
-            prediction_labels = {'Negative Tweet':-1,'Neutral Tweet':0,'Positive Tweet':1,'News Tweet':2}
-            #Classifying using different models
+            model_name = ["LinearSVC", "NB", "RFOREST",
+                          "DECISION_TREE", "LR", "KNN"]
+            model_choice = st.selectbox(
+                "Select a Classifier  Model", model_name)
+
+            prediction_labels = {
+                'Negative Tweet': -1, 'Neutral Tweet': 0, 'Positive Tweet': 1, 'News Tweet': 2}
+            # Classifying using different models
             if st.button("Classify"):
-                
-                #Cleaning the input text
+
+                # Cleaning the input text
                 tweet_text = cleanup_text(tweet_text)
                 # Transforming user input with vectorizer
                 vect_text = tweet_cv.transform([tweet_text]).toarray()
                 # Load your .pkl file with the model of your choice + make predictions
                 # Try loading in multiple models to give the user a choice
-                
-                #Linear SVC Model
+
+                # Linear SVC Model
                 if model_choice == "LinearSVC":
                     predictor = joblib.load(
                         open(os.path.join("resources/linearsvc.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
+
                 # MutilNomial Naive Model
                 if model_choice == "NB":
                     predictor = joblib.load(
                         open(os.path.join("resources/MultinomialNB.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
-                #Random Forest Model
+
+                # Random Forest Model
                 if model_choice == "RFOREST":
                     predictor = joblib.load(
                         open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                
-                #Decision Tree Classifer Model
+
+                # Decision Tree Classifer Model
                 if model_choice == "DECISION_TREE":
                     predictor = joblib.load(
                         open(os.path.join("resources/DecisionTreeClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                
-                #Logistic Regression Model    
+
+                # Logistic Regression Model
                 if model_choice == "LR":
                     predictor = joblib.load(
                         open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
-                #K-Neighborhood Naive Model
+
+                # K-Neighborhood Naive Model
                 if model_choice == "KNN":
                     predictor = joblib.load(
                         open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                
-                
 
-                final_result = get_keys(prediction,prediction_labels)
+                final_result = get_keys(prediction, prediction_labels)
                 # When model has successfully run, will print prediction
                 # You can use a dictionary or similar structure to make this output
                 # more human interpretable.
                 st.success("Text Categorized as:  {}".format(final_result))
-    
+
         if source_selection == 'CSV file':
-            #CSV File Prediction
+            # CSV File Prediction
             st.subheader('Tweet Classification for csv file')
-            
-            model_name = ["LinearSVC","NB","RFOREST","DECISION_TREE", "LR","KNN"]
-            
-            
-            prediction_labels = {'Negative':-1,'Neutral':0,'Positive':1,'News':2}
+
+            model_name = ["LinearSVC", "NB", "RFOREST",
+                          "DECISION_TREE", "LR", "KNN"]
+
+            prediction_labels = {'Negative': -1,
+                                 'Neutral': 0, 'Positive': 1, 'News': 2}
             data = st.file_uploader("Select a CSV file", type="csv")
             if data is not None:
                 data = pd.read_csv(data)
-                
+
             uploaded_dataset = st.checkbox('Click to view uploaded file')
             if uploaded_dataset:
                 st.dataframe(data.head(25))
-            st.markdown('Please type the name column you wish to classify as the way it is named in the file uploaded.')    
+            st.markdown(
+                'Please type the name column you wish to classify as the way it is named in the file uploaded.')
             new_column = st.text_area('Enter the column name:')
-            
-            model_choice = st.selectbox("Select a Classifier  Model",model_name)
-            
-            
+
+            model_choice = st.selectbox(
+                "Select a Classifier  Model", model_name)
+
             if st.button("Classify"):
-                #Cleaning the input data cloumn 
-                
+                # Cleaning the input data cloumn
+
                 dt = data[new_column].apply(cleanup_text)
-                
+
                 # Transforming user cleaned data with vectorizer
                 vect_text = tweet_cv.transform([dt]).toarray()
                 # Load your .pkl file with the model of your choice + make predictions
                 # Try loading in multiple models to give the user a choice
-                
-                #Linear SVC Model
+
+                # Linear SVC Model
                 if model_choice == "LinearSVC":
                     predictor = joblib.load(
                         open(os.path.join("resources/linearsvc.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
+
                 # MutilNomial Naive Model
                 if model_choice == "NB":
                     predictor = joblib.load(
                         open(os.path.join("resources/MultinomialNB.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
-                #Random Forest Model
+
+                # Random Forest Model
                 if model_choice == "RFOREST":
                     predictor = joblib.load(
                         open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                
-                #Decision Tree Classifer Model
+
+                # Decision Tree Classifer Model
                 if model_choice == "DECISION_TREE":
                     predictor = joblib.load(
                         open(os.path.join("resources/DecisionTreeClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                
-                #Logistic Regression Model    
+
+                # Logistic Regression Model
                 if model_choice == "LR":
                     predictor = joblib.load(
                         open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                    
-                #K-Neighborhood Naive Model
+
+                # K-Neighborhood Naive Model
                 if model_choice == "KNN":
                     predictor = joblib.load(
                         open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                data['sentiment'] = prediction   
-                final_result = get_keys(prediction,prediction_labels)
+                data['sentiment'] = prediction
+                final_result = get_keys(prediction, prediction_labels)
                 # When model has successfully run, will print prediction
                 # You can use a dictionary or similar structure to make this output
                 # more human interpretable.
                 st.success("Text Categorized as:  {}".format(final_result))
-            
-            
+
+
 # Required to let Streamlit instantiate our web app.
 if __name__ == '__main__':
     main()

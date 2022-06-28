@@ -380,6 +380,8 @@ def main():
         plt.axis('off')
         st.pyplot(fig)
         
+        st.markdown('The most words that will appear overral are the words that had the most hashtags, this might be that it was the most topic people engaged in. The word cloud gives you a better understand of the inside text data and helps us understand which frequent words were used in our text data.')
+        
         #Word graph for each sentiment
         df=new_df.groupby('Analysis')
         wc1=" ".join(tweet for tweet in df.get_group('Positive').message)
@@ -499,7 +501,7 @@ def main():
             st.subheader('Tweet Classification for csv file')
             
             model_name = ["LinearSVC","NB","RFOREST","DECISION_TREE", "LR","KNN"]
-            model_choice = st.selectbox("Select a Classifier  Model",model_name)
+            
             
             prediction_labels = {'Negative':-1,'Neutral':0,'Positive':1,'News':2}
             data = st.file_uploader("Select a CSV file", type="csv")
@@ -512,7 +514,7 @@ def main():
             st.markdown('Please type the name column you wish to classify as the way it is named in the file uploaded.')    
             new_column = st.text_area('Enter the column name:')
             
-            senti = st.text_input('type down your y predict')
+            model_choice = st.selectbox("Select a Classifier  Model",model_name)
             
             
             if st.button("Classify"):

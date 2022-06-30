@@ -203,20 +203,15 @@ def main():
 
     # Creating sidebar with selection box -
     # you can create multiple pages this way
-    options = ["Home Page", "Information", "Analysis", "Prediction"]
+    options = ["Information", "Analysis", "Prediction"]
     selection = st.sidebar.selectbox("Choose Option", options)
 
     # Home page
-    if selection == "Home Page":
-        st.title('DATA DECISION MAKERS COMPANY')
-        st.info('Climate Change Belief Analysis')
-        st.markdown(
-            'Climate change  definitiion................................................')
-        st.info('Company Vision')
-        st.markdown('Vision of the company .......................')
-        st.info('Mission Statement')
-        st.markdown(
-            'mission statement of the company..............................')
+    st.title("Tweet Classifer")
+    st.subheader("Climate change tweet classification")
+    st.info('Climate Change Belief Analysis')
+    st.markdown(
+        'Climate change is a change in global or regional climate patterns, in particular a change apparent from the mid to late 20th century onwards and attributed largely to the increased levels of atmospheric carbon dioxide produced by the use of fossil fuels.')
 
     """Tweet Classifier App with Streamlit """
 
@@ -225,8 +220,7 @@ def main():
 
         # Creates a main title and subheader on your page -
         # these are static across all pages
-        st.title("Tweet Classifer")
-        st.subheader("Climate change tweet classification")
+        
 
         st.info("General Information")
         # You can read a markdown file from supporting resources folder

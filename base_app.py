@@ -363,10 +363,10 @@ def main():
 
         st.markdown('A hashtag—written with a "#" symbol—is used to index keywords or topics on Twitter. This function was created on Twitter,\
             and allows people to easily follow topics they are interested in. Hashtags help you to identify the most trending topics at that moment, thus helping us in analysing our data. It is believed Our most #hashtag trends will be based mostly on  Climate change. The above graphs helps us understand which trends had more engagements and if those trends where either positive, negative, news or just nuetral. This gives us a better insight of our data. ')
-        st.markdown('*The above analysis were based on uncleaned data, we  are to clean the data and this time around we are to use word cloud visuals just to have a look at the most common words used in each sentiment. This might give more knowledge as to why our data is not balanced. Balancing the data is something is something we going to do later in this stage.*')
+        st.markdown('*The above analysis were based on uncleaned data, we  are to clean the data and this time around we are to use word cloud visuals just to have a look at the most common words used.*')
         st.subheader(
-            'The following visuals provide the most frequent words used in each tweet sentiment')
-        st.markdown('The visuals will be based only on the cleaned data. We can first see the frequent words for the overral sentiment before visualising for each sentiment')
+            'The following visuals provide the most frequent words used tweet sentiment')
+        st.markdown('The visuals will be based only on the cleaned data. We can first see the frequent words for the overral sentiment ')
 
         # cleaning the data
         new_df['message'] = new_df['message'].apply(cleanup_text)
@@ -386,42 +386,7 @@ def main():
         st.markdown('The most words that will appear overral are the words that had the most hashtags, this might be that it was the most topic people engaged in. The word cloud gives you a better understand of the inside text data and helps us understand which frequent words were used in our text data.')
 
         # Word graph for each sentiment
-        df = new_df.groupby('Analysis')
-        wc1 = " ".join(tweet for tweet in df.get_group('Positive').message)
-        wc2 = " ".join(tweet for tweet in df.get_group('News').message)
-        wc3 = " ".join(tweet for tweet in df.get_group('Negative').message)
-        wc0 = " ".join(tweet for tweet in df.get_group('Neutral').message)
 
-        pos = WordCloud(width=600, height=400,
-                        colormap='Greens', background_color='black',
-                        max_font_size=180, random_state=42).generate(wc1)
-        nes = WordCloud(width=600, height=400,
-                        colormap='Blues', background_color='black',
-                        max_font_size=180, random_state=42).generate(wc2)
-        neu = WordCloud(width=600, height=400,
-                        colormap='Dark2', background_color='black',
-                        max_font_size=180, random_state=42).generate(wc3)
-        neg = WordCloud(width=600, height=400,
-                        colormap='Reds', background_color='black',
-                        max_font_size=180, random_state=42, stopwords='english').generate(wc0)
-        f, axarr = plt.subplots(2, 2, figsize=(35, 25))
-        plt.subplots_adjust(wspace=0.02, hspace=0.1)
-        axarr[0, 0].imshow(pos, interpolation="bilinear")
-        axarr[0, 1].imshow(nes, interpolation="bilinear")
-        axarr[1, 0].imshow(neu, interpolation="bilinear")
-        axarr[1, 1].imshow(neg, interpolation="bilinear")
-
-        # Remove the ticks on the x and y axes
-        for ax in f.axes:
-            plt.sca(ax)
-            plt.axis('off')
-
-        axarr[0, 0].set_title('Positive climate change\n', fontsize=35)
-        axarr[0, 1].set_title('News\n', fontsize=35)
-        axarr[1, 0].set_title('Neutral\n', fontsize=35)
-        axarr[1, 1].set_title('Negative Climate Change\n', fontsize=35)
-
-        st.pyplot()
     # Building out the predication page
     if selection == "Prediction":
         st.info("Prediction with ML Models")

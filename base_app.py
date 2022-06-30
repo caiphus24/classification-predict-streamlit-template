@@ -200,20 +200,34 @@ def cleanup_text(text):
 
 
 def main():
-    """Tweet Classifier App with Streamlit """
-
-    # Creates a main title and subheader on your page -
-    # these are static across all pages
-    st.title("Tweet Classifer")
-    st.subheader("Climate change tweet classification")
 
     # Creating sidebar with selection box -
     # you can create multiple pages this way
-    options = ["Information", "Analysis", "Prediction"]
+    options = ["Home Page", "Information", "Analysis", "Prediction"]
     selection = st.sidebar.selectbox("Choose Option", options)
+
+    # Home page
+    if selection == "Home Page":
+        st.title('DATA DECISION MAKERS COMPANY')
+        st.info('Climate Change Belief Analysis')
+        st.markdown(
+            'Climate change  definitiion................................................')
+        st.info('Company Vision')
+        st.markdown('Vision of the company .......................')
+        st.info('Mission Statement')
+        st.markdown(
+            'mission statement of the company..............................')
+
+    """Tweet Classifier App with Streamlit """
 
     # Building out the "Information" page
     if selection == "Information":
+
+        # Creates a main title and subheader on your page -
+        # these are static across all pages
+        st.title("Tweet Classifer")
+        st.subheader("Climate change tweet classification")
+
         st.info("General Information")
         # You can read a markdown file from supporting resources folder
 
@@ -424,22 +438,26 @@ def main():
         source_selection = st.selectbox('Type of Data', data_source)
 
         # Fuction to return a key value
-        def get_keys(val, my_dict):
-            for key, value in my_dict.items():
-                if val == value:
-                    return key
+        
 
         if source_selection == 'Tweet Text':
             st.info(
                 '**Classification for single tweet text, this is limited to 140 Characters as per tweet.**')
-            tweet_text = st.text_area("Enter Text Below:")
-            model_name = ["LinearSVC", "NB", "RFOREST",
+            
+            lst = ['Positive: A believer of in Climate Change ', 'Negative: You do not believe in climate change', 'Neutral: A believer nor a non-believer of man made climate change', 'News: Factual news about climate']
+
+            for i in lst:
+                st.markdown("- " + i)
+            texts = st.text_area("Enter Text Below:")
+            if len(texts)>4:
+                tweet_text = texts
+            
+            
+            model_name = ["LinearSVC", "NB", "RF",
                           "DECISION_TREE", "LR", "KNN"]
             model_choice = st.selectbox(
                 "Select a Classifier  Model", model_name)
 
-            prediction_labels = {
-                'Negative Tweet': -1, 'Neutral Tweet': 0, 'Positive Tweet': 1, 'News Tweet': 2}
             # Classifying using different models
             if st.button("Classify"):
 
@@ -463,7 +481,7 @@ def main():
                     prediction = predictor.predict(vect_text)
 
                 # Random Forest Model
-                if model_choice == "RFOREST":
+                if model_choice == "RF":
                     predictor = joblib.load(
                         open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
@@ -483,10 +501,18 @@ def main():
                 # K-Neighborhood Naive Model
                 if model_choice == "KNN":
                     predictor = joblib.load(
-                        open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
+                        open(os.path.join("resources/KNeighborsClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
+                    
+                if prediction == 2:
+                    final_result = "News"
+                elif prediction == 1:
+                    final_result = 'Positive'
+                elif prediction == 0:
+                    final_result = 'Neutral'
+                else:
+                    final_result = 'Negative'
 
-                final_result = get_keys(prediction, prediction_labels)
                 # When model has successfully run, will print prediction
                 # You can use a dictionary or similar structure to make this output
                 # more human interpretable.
@@ -496,7 +522,7 @@ def main():
             # CSV File Prediction
             st.subheader('Tweet Classification for csv file')
 
-            model_name = ["LinearSVC", "NB", "RFOREST",
+            model_name = ["LinearSVC", "NB", "RF",
                           "DECISION_TREE", "LR", "KNN"]
 
             prediction_labels = {'Negative': -1,
@@ -510,6 +536,10 @@ def main():
                 st.dataframe(data.head(25))
             st.markdown(
                 'Please type the name column you wish to classify as the way it is named in the file uploaded.')
+            lst = ['1: A believer of in Climate Change ', '-1: You do not believe in climate change', '0: A believer nor a non-believer of man made climate change', '2: Factual news about climate']
+
+            for i in lst:
+                st.markdown("- " + i)
             new_column = st.text_area('Enter the column name:')
 
             model_choice = st.selectbox(
@@ -521,7 +551,7 @@ def main():
                 dt = data[new_column].apply(cleanup_text)
 
                 # Transforming user cleaned data with vectorizer
-                vect_text = tweet_cv.transform([dt]).toarray()
+                vect_text = tweet_cv.transform(dt).toarray()
                 # Load your .pkl file with the model of your choice + make predictions
                 # Try loading in multiple models to give the user a choice
 
@@ -530,42 +560,48 @@ def main():
                     predictor = joblib.load(
                         open(os.path.join("resources/linearsvc.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
+                    st.success("Text Categorized as:  {}".format(prediction))
 
                 # MutilNomial Naive Model
                 if model_choice == "NB":
                     predictor = joblib.load(
                         open(os.path.join("resources/MultinomialNB.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
+                    st.success("Text Categorized as:  {}".format(prediction))
 
                 # Random Forest Model
-                if model_choice == "RFOREST":
+                if model_choice == "RF":
                     predictor = joblib.load(
                         open(os.path.join("resources/RandomForestClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
+                    st.success("Text Categorized as:  {}".format(prediction))
 
                 # Decision Tree Classifer Model
                 if model_choice == "DECISION_TREE":
                     predictor = joblib.load(
                         open(os.path.join("resources/DecisionTreeClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
+                    st.success("Text Categorized as:  {}".format(prediction))
 
                 # Logistic Regression Model
                 if model_choice == "LR":
                     predictor = joblib.load(
                         open(os.path.join("resources/Logistic_regression.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-
+                    st.success("Text Categorized as:  {}".format(prediction))
+                    
                 # K-Neighborhood Naive Model
                 if model_choice == "KNN":
                     predictor = joblib.load(
-                        open(os.path.join("resources/KNeighborsClassifier.pkl.pkl"), "rb"))
+                        open(os.path.join("resources/KNeighborsClassifier.pkl"), "rb"))
                     prediction = predictor.predict(vect_text)
-                data['sentiment'] = prediction
-                final_result = get_keys(prediction, prediction_labels)
+                    st.success("Text Categorized as:  {}".format(prediction))
                 # When model has successfully run, will print prediction
+    
+                
                 # You can use a dictionary or similar structure to make this output
                 # more human interpretable.
-                st.success("Text Categorized as:  {}".format(final_result))
+                
 
 
 # Required to let Streamlit instantiate our web app.
